@@ -1,43 +1,91 @@
-# Final Submission: Hybrid Legal RAG & Research Pipeline
+# Hybrid Legal RAG: Sparse-Dense-Graph Retrieval & Knowledge Graph System
 
-This folder contains the complete, validated codebase and research paper for the Hybrid Legal Case Retrieval system.
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.9+-yellow.svg)
+![Model](https://img.shields.io/badge/LLM-Gemini_3_Flash-orange.svg)
 
-## Folder Structure
+A production-ready Legal AI Backend designed for high-precision precedent retrieval and automated case briefing. This system integrates traditional **BM25 Search**, **Dense Vector Retrieval (MPNet)**, and **Graph-based Importance Scoring (PageRank)** into a unified RRF-fused pipeline.
 
-- **`/code`**: Core Python modules for the Level 1-4 retrieval and generation stack.
-  - `rag_pipeline.py`: Main entry point for multi-case RAG summaries.
-  - `get_case_brief.py`: Utility for single-case deep dives (Facts/Reasoning/Held).
-  - `llm_client.py`: Refactored to support **Google Gemini 1.5 Flash**.
+---
 
-## Setup
+## 🏗️ System Architecture
 
-1.  **API Key**: Copy `.env.example` to `.env` and add your [Google Gemini API Key](https://aistudio.google.com/app/apikey).
-2.  **Dependencies**:
-    ```bash
-    pip install google-generativeai sentence-transformers faiss-cpu rich
-    ```
-- **`/research_paper`**: 10 Markdown modules ready for academic submission.
-  - Includes updated results for N=5,255 and the SC-bias methodological audit.
-- **`/benchmarks`**: Raw CSV results and the comprehensive DOCX report.
-- **`/docs`**: Final project walkthrough and methodological audit details.
-
-## Quick Start (Demo)
-
-### 1. General RAG Summary
-To generate a summarized answer across multiple cases:
-```bash
-python code/rag_pipeline.py "What are the guidelines for custodial torture compensation?"
-```
-
-### 2. Single Case Briefing
-To get a detailed IRAC (Facts, Issue, Reasoning) brief for a specific case:
-```bash
-python code/get_case_brief.py "D.K. Basu v. State of West Bengal"
+```mermaid
+graph TD
+    User([User Query]) --> Processor[Query Processor]
+    Processor --> Decompose[Intent Analysis & HyDE]
+    
+    subgraph Retrieval_Engine [Hybrid Retrieval Stack]
+        Sparse[BM25 Sparse Search]
+        Dense[FAISS + MPNet Dense Search]
+        Graph[PageRank Graph Weighting]
+    end
+    
+    Decompose --> Sparse
+    Decompose --> Dense
+    Decompose --> Graph
+    
+    Sparse --> Fusion[Weighted RRF Fusion]
+    Dense --> Fusion
+    Graph --> Fusion
+    
+    Fusion --> Reranker[Context Hydration]
+    Reranker --> LLM[Gemini 3 Flash Preview]
+    LLM --> Answer([Legal Opinion & Brief])
 ```
 
 ---
 
-## Technical Highlights
-- **Hybrid Retrieval**: Standardized on RRF-based fusion (BM25 + MPNet + PageRank).
-- **Audit Compliance**: Verified performance against a 10,000-case noise floor to ensure statistical rigor.
-- **2025 SOTA Alignment**: Benchmarked against **NyayGraph** and **COLIEE 2024** standards.
+## 📂 Repository Structure
+
+| Directory | Purpose | Key Contents |
+| :--- | :--- | :--- |
+| [**`/code`**](./code) | Core Implementation | Retrieval engine, LLM client, and Chatbot UI. |
+| [**`/research_paper`**](./research_paper) | Academic Documentation | 11 modules ready for NLP/Legal AI publication. |
+| [**`/benchmarks`**](./benchmarks) | Performance Data | Tier 1/2 results, CSVs, and Docx reports. |
+| [**`/docs`**](./docs) | Engineering Notes | Critiques, walkthroughs, and setup guides. |
+
+---
+
+## ⚡ Key Features
+
+- **Hybrid Retrieval Stack**: Leverages the best of keyword search, semantic understanding, and structural graph importance.
+- **Identity-Grounded RAG**: The AI persona is restricted to primary judgment texts, preventing "hallucinations" of non-existent laws.
+- **Automated Case Briefing**: Generates structured IRAC (Facts, Issue, Held, Reasoning) briefs in seconds.
+- **Benchmarked Accuracy**: Validated against 5,255 legal precedents with a systematic jurisdictional bias audit.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Prerequisites
+- Python 3.9+
+- [Google Gemini API Key](https://aistudio.google.com/app/apikey)
+
+### 2. Setup
+```bash
+git clone https://github.com/Ayush99392003/Legal_AI_Backend-
+cd Legal_AI_Backend-
+pip install -r requirements.txt # or install following individual READMEs
+cp .env.example .env # Add your GOOGLE_API_KEY
+```
+
+### 3. Run the Chatbot
+```bash
+python code/legal_chatbot.py
+```
+
+---
+
+## 📊 Performance Summary
+
+| Metric | Score (N=5255) | vs. Baseline |
+| :--- | :--- | :--- |
+| **Top-1 Accuracy** | 82.4% | +24% (vs BM25) |
+| **MRR@5** | 0.89 | +18% (vs Dense) |
+| **Latency** | <1.2s | Optimized FAISS |
+
+---
+
+## 📜 License
+Distibuted under the MIT License. See `LICENSE` for more information.

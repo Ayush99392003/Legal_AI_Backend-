@@ -120,12 +120,12 @@ class SearchEngine:
         if candidates:
             # Efficient bulk fetch
             candidate_ids = list(candidates.keys())
-            import sqlite3
             conn = sqlite3.connect(self.storage.db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
             placeholders = ','.join(['?'] * len(candidate_ids))
+            # Include full_text in the selection
             cursor.execute(
                 f"SELECT * FROM cases WHERE case_id IN ({placeholders})",
                 candidate_ids)
@@ -134,29 +134,15 @@ class SearchEngine:
             case_map = {row['case_id']: dict(row) for row in rows}
             conn.close()
 
-            # Pre-load path for text reading
-            from pathlib import Path
-            from config import Config
-            full_text_dir = Path(Config.FULL_TEXTS_DIR)
-
             for cid, score in candidates.items():
                 if cid in case_map:
                     case = case_map[cid]
                     case['score'] = round(score, 4)
-
-                    # For ULTRA mode, we need the text content
-                    # for the Cross-Encoder
-                    if mode == SearchMode.ULTRA:
-                        try:
-                            file_path = full_text_dir / f"{cid}.txt"
-                            if file_path.exists():
-                                case['text_content'] = file_path.read_text(
-                                    encoding='utf-8', errors='ignore')[:2000]
-                            else:
-                                case['text_content'] = ""
-                        except Exception:
-                            case['text_content'] = ""
-
+                    
+                    # Store text content from DB (for RAG context and Ultra re-ranking)
+                    # We take the first 3000 chars for context to keep it lean
+                    case['text_content'] = case.get('full_text', '')[:3000]
+                    
                     final_results.append(case)
 
         # 4. Re-ranking (ULTRA Mode)

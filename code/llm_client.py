@@ -185,24 +185,39 @@ Output queries separated by newlines.
     def generate_answer(
         self,
         query: str,
-        context_docs: List[Dict[str, Any]]
+        context_docs: List[Dict[str, Any]],
+        history: Optional[List[Dict[str, Any]]] = None
     ) -> Optional[str]:
-        """Generate RAG summary using Gemini with citations."""
+        """Generate RAG summary using Gemini with citations and history."""
+        # 1. Format Context
         context_text = ""
         for i, doc in enumerate(context_docs[:5], 1):
             title = doc.get('title', 'N/A')
             snippet = doc.get('text', 'No content')[:2500]
             context_text += f"\n[CASE {i}] {title}: {snippet}\n"
 
+        # 2. Format History
+        history_text = ""
+        if history:
+            # Only take the last 6 messages to keep context window clean
+            for msg in history[-6:]:
+                role = "User" if msg["role"] == "user" else "Assistant"
+                content = msg["content"]
+                history_text += f"{role}: {content}\n"
+
         prompt = f"""You are a Senior Advocate in the Supreme Court of India.
-Based on the provided precedents, answer the user's legal question.
+Based on the provided precedents and conversation history, answer the legal question.
 
 STRICT RULES:
 1. CITATIONS: Use the FULL Case Names and Citations for every legal point.
 2. GROUNDING: Only answer based on the provided [CASE] texts.
 3. STRUCTURE: Use a structured 'Legal Opinion' format.
+4. FOLLOW-UPS: If this is a follow-up query, maintain consistency with the history.
 
-QUESTION: {query}
+CONVERSATION HISTORY:
+{history_text or "No previous history."}
+
+CURRENT QUESTION: {query}
 
 PRECEDENTS:
 {context_text}

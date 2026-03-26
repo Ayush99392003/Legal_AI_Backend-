@@ -60,7 +60,7 @@ class LegalChatbot:
         console.print(doc_table)
 
         with console.status("[bold yellow]Synthesizing legal advice..."):
-            answer = self.llm.generate_answer(query, context_docs)
+            answer = self.llm.generate_answer(query, context_docs, history=self.sessions.history)
             
         if answer:
             console.print("\n" + "─"* console.width)

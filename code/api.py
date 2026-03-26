@@ -90,7 +90,7 @@ async def chat_consultation(query: ChatQuery):
         ]
         
         # 4. Generate Answer
-        answer = llm.generate_answer(query.query, context_docs)
+        answer = llm.generate_answer(query.query, context_docs, history=sessions.history)
         
         # 5. Update Session
         sessions.add_message("user", query.query)

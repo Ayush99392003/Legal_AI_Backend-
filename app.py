@@ -98,7 +98,7 @@ if prompt := st.chat_input("Ask a legal question..."):
                 ]
                 
                 # 3. Generate Answer
-                answer = llm.generate_answer(prompt, context_docs)
+                answer = llm.generate_answer(prompt, context_docs, history=sessions.history)
                 
                 # 4. Display Result
                 with st.chat_message("assistant"):

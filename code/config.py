@@ -25,7 +25,7 @@ class Config:
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
     # Storage Configuration
-    BASE_DATA_DIR = Path("data")
+    BASE_DATA_DIR = Path(__file__).parent.parent.absolute() / "data"
     CATEGORIES_DIR = BASE_DATA_DIR / "categories"
     FULL_TEXTS_DIR = BASE_DATA_DIR / "full_texts"
     INDEX_DB_PATH = BASE_DATA_DIR / "index.db"

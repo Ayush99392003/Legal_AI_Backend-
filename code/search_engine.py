@@ -11,7 +11,7 @@ import sqlite3
 from typing import List, Dict, Any, Optional
 from storage_manager import StorageManager
 from llm_client import LLMClient
-from utils import print_info
+from utils import print_info, print_warning
 
 
 from enum import Enum
@@ -96,19 +96,35 @@ class SearchEngine:
             pool_size = limit * 10 if mode == SearchMode.ULTRA else limit * 5
 
             sparse_results = self._sparse_retrieval(query, keywords, pool_size)
-            dense_results = self._dense_retrieval(query, pool_size)
-            graph_results = self._graph_retrieval(pool_size, main_cat, sub_cat)
+            
+            # DENSE Fallback: Skip if index missing
+            try:
+                dense_results = self._dense_retrieval(query, pool_size)
+            except Exception as e:
+                print_warning(f"Dense retrieval skipped: {e}")
+                dense_results = {}
 
-            # Weighting: Increase Dense weight for descriptive (long) queries
-            # Default weights: [Sparse, Dense, Graph]
-            weights = [1.0, 1.2, 0.8]
-            if len(query.split()) > 15:
-                # Descriptive query boost
-                weights = [0.8, 1.8, 1.0]
+            # GRAPH Fallback: Skip if pagerank missing
+            try:
+                graph_results = self._graph_retrieval(pool_size, main_cat, sub_cat)
+            except Exception as e:
+                print_warning(f"Graph retrieval skipped: {e}")
+                graph_results = {}
 
             # Combine using Weighted Reciprocal Rank Fusion
+            # If only sparse results exist, RRF will still work but only use one list
+            result_lists = [sparse_results]
+            weights = [1.0]
+            
+            if dense_results:
+                result_lists.append(dense_results)
+                weights.append(1.2)
+            if graph_results:
+                result_lists.append(graph_results)
+                weights.append(0.8)
+
             candidates = self._reciprocal_rank_fusion(
-                [sparse_results, dense_results, graph_results],
+                result_lists,
                 k=60,
                 weights=weights
             )
@@ -141,7 +157,7 @@ class SearchEngine:
                     
                     # Store text content from DB (for RAG context and Ultra re-ranking)
                     # We take the first 3000 chars for context to keep it lean
-                    case['text_content'] = case.get('full_text', '')[:3000]
+                    case['text_content'] = (case.get('full_text') or '')[:3000]
                     
                     final_results.append(case)
 

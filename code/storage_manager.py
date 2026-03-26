@@ -368,7 +368,7 @@ class StorageManager:
         # Check if table has data
         try:
             cursor.execute("""
-                SELECT c.file_path, f.rank 
+                SELECT c.*, f.rank 
                 FROM cases_fts f 
                 JOIN cases c ON f.case_id = c.case_id 
                 WHERE cases_fts MATCH ? 
@@ -378,27 +378,24 @@ class StorageManager:
         except sqlite3.OperationalError:
             # Fallback for simple LIKE if FTS fails or complex query
             cursor.execute("""
-                SELECT file_path FROM cases 
+                SELECT * FROM cases 
                 WHERE title LIKE ? OR case_number LIKE ?
                 LIMIT ?
             """, (f"%{query}%", f"%{query}%", limit))
 
+        # Get column names
+        columns = [description[0] for description in cursor.description]
+        
         results = cursor.fetchall()
         conn.close()
 
         cases = []
         for row in results:
-            file_path = row[0]
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    case = json.load(f)
-                    # If rank available, add it
-                    if len(row) > 1:
-                        case['fts_rank'] = row[1]
-                    cases.append(case)
-            except Exception as e:
-                print_error(
-                    f"Failed to load case from {file_path}: {str(e)}"
-                )
+            # Create a dict from the row
+            case = dict(zip(columns, row))
+            # Rename fts_rank if present (from FTS join)
+            if 'rank' in case:
+                case['fts_rank'] = case.pop('rank')
+            cases.append(case)
 
         return cases

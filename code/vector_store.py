@@ -61,8 +61,8 @@ class VectorStore:
                 print_success(
                     f"Loaded index with {self.index.ntotal} vectors.")
                 return True
-            except Exception as e:
-                print_error(f"Failed to load index: {e}")
+            except Exception:
+                # Silently fail, search engine handles fallback
                 return False
         return False
 

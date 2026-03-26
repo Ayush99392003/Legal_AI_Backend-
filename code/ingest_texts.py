@@ -37,14 +37,25 @@ def migrate_texts_to_db():
         try:
             content = file_path.read_text(encoding='utf-8', errors='ignore')
             
-            # Update the main cases table
+            # 1. Update the main cases table
             cursor.execute(
                 "UPDATE cases SET full_text = ? WHERE case_id = ?",
                 (content, case_id)
             )
+
+            # 2. Update the FTS table for keyword search
+            # (We only index the first 50,000 chars to avoid FTS limits)
+            cursor.execute(
+                "UPDATE cases_fts SET content = ? WHERE case_id = ?",
+                (content[:50000], case_id)
+            )
             
             if cursor.rowcount > 0:
                 updated_count += 1
+            
+            # Periodic commit to prevent rollback on interrupt
+            if updated_count % 10 == 0:
+                conn.commit()
                 
         except Exception as e:
             console.print(f"[dim red]Error processing {case_id}: {e}[/dim red]")

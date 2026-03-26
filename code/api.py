@@ -107,6 +107,35 @@ async def chat_consultation(query: ChatQuery):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/brief/{case_id}")
+async def generate_case_brief(case_id: str):
+    """Generate a structured IRAC case brief for a specific judgment."""
+    try:
+        # 1. Fetch Case
+        case = engine.storage.get_case(case_id)
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+            
+        # 2. Get body text
+        case_text = case.get('full_text') or ""
+        if not case_text and case.get('file_path'):
+            # Fallback to file system if not in DB yet
+            full_text_path = Path(__file__).parent.parent / "data" / "full_texts" / f"{case_id}.txt"
+            if full_text_path.exists():
+                case_text = full_text_path.read_text(encoding='utf-8', errors='ignore')
+
+        if not case_text:
+             raise HTTPException(status_code=400, detail="Judgment body not available for briefing")
+
+        # 3. Generate Brief
+        brief = llm.generate_case_brief(case, case_text)
+        return {"case_id": case_id, "title": case['title'], "brief": brief}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/sessions")
 async def list_sessions():
     """List recent conversation sessions."""

@@ -75,6 +75,34 @@ cp .env.example .env # Add your GOOGLE_API_KEY
 python code/legal_chatbot.py
 ```
 
+### 4. Run the REST API
+```bash
+python code/api.py
+```
+*Access API Docs at: http://localhost:8000/docs*
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/search` | Hybrid search for precedents. |
+| `POST` | `/chat` | Conversational legal advice with history. |
+| `GET` | `/sessions` | List active conversation sessions. |
+
+### Example Usage (cURL)
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/chat' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "query": "Divorce with prenuptial agreement in India",
+  "limit": 5
+}'
+```
+
 ---
 
 ## 📊 Performance Summary

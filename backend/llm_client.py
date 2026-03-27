@@ -205,7 +205,7 @@ Output queries separated by newlines.
                 content = msg["content"]
                 history_text += f"{role}: {content}\n"
 
-        prompt = f"""You are a Senior Advocate in the Supreme Court of India.
+        prompt = f"""You are a AI Senior Advocate.
 Based on the provided precedents and conversation history, answer the legal question.
 
 STRICT RULES:

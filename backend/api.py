@@ -22,10 +22,29 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Initialize Core Services
-engine = SearchEngine()
-llm = LLMClient()
-sessions = SessionManager(sessions_dir=str(Path(__file__).parent.parent / "sessions"))
+# Global Service Containers (Lazy Loaded)
+_engine = None
+_llm = None
+_sessions = None
+
+def get_engine():
+    global _engine
+    if _engine is None:
+        _engine = SearchEngine()
+    return _engine
+
+def get_llm():
+    global _llm
+    if _llm is None:
+        _llm = LLMClient()
+    return _llm
+
+def get_sessions():
+    global _sessions
+    if _sessions is None:
+        sessions_path = str(Path(__file__).parent.parent / "sessions")
+        _sessions = SessionManager(sessions_dir=sessions_path)
+    return _sessions
 
 # Pydantic Models
 class SearchQuery(BaseModel):
@@ -63,7 +82,7 @@ async def search_cases(query: SearchQuery):
         }
         search_mode = mode_map.get(query.mode.lower(), SearchMode.HYBRID)
         
-        results = engine.search(query.query, limit=query.limit, mode=search_mode)
+        results = get_engine().search(query.query, limit=query.limit, mode=search_mode)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -73,13 +92,14 @@ async def chat_consultation(query: ChatQuery):
     """Get legal advice grounded in retrieved precedents."""
     try:
         # 1. Handle Session
+        sessions = get_sessions()
         if query.session_id:
             sessions.load_session(query.session_id)
         else:
             sessions.start_new_session()
             
         # 2. Search
-        results = engine.search(query.query, limit=query.limit, mode=SearchMode.HYBRID)
+        results = get_engine().search(query.query, limit=query.limit, mode=SearchMode.HYBRID)
         if not results:
             return {"answer": "No relevant precedents found.", "session_id": sessions.current_session_id, "precedents": []}
             
@@ -90,7 +110,7 @@ async def chat_consultation(query: ChatQuery):
         ]
         
         # 4. Generate Answer
-        answer = llm.generate_answer(query.query, context_docs, history=sessions.history)
+        answer = get_llm().generate_answer(query.query, context_docs, history=sessions.history)
         
         # 5. Update Session
         sessions.add_message("user", query.query)
@@ -112,7 +132,7 @@ async def generate_case_brief(case_id: str):
     """Generate a structured IRAC case brief for a specific judgment."""
     try:
         # 1. Fetch Case
-        case = engine.storage.get_case(case_id)
+        case = get_engine().storage.get_case(case_id)
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
             
@@ -128,7 +148,7 @@ async def generate_case_brief(case_id: str):
              raise HTTPException(status_code=400, detail="Judgment body not available for briefing")
 
         # 3. Generate Brief
-        brief = llm.generate_case_brief(case, case_text)
+        brief = get_llm().generate_case_brief(case, case_text)
         return {"case_id": case_id, "title": case['title'], "brief": brief}
         
     except HTTPException:
@@ -139,7 +159,7 @@ async def generate_case_brief(case_id: str):
 @app.get("/sessions")
 async def list_sessions():
     """List recent conversation sessions."""
-    return sessions.list_sessions()
+    return get_sessions().list_sessions()
 
 if __name__ == "__main__":
     import uvicorn

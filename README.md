@@ -96,7 +96,7 @@ The system was evaluated against a high-fidelity dataset of 26,274 judgments, sp
 Create a `.env` file in the root directory:
 ```env
 GOOGLE_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.5-flash
 REDIS_HOST=your_redis_host (optional for remote sessions)
 ```
 
